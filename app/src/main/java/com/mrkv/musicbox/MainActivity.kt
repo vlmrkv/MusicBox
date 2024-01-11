@@ -1,12 +1,9 @@
 package com.mrkv.musicbox
 
-import android.content.Context
-import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
-import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -31,35 +28,51 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.mrkv.musicbox.trackdetail.TrackDetail
+import androidx.navigation.NavController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import com.mrkv.musicbox.trackdetail.Tracks
 import com.skydoves.landscapist.ImageOptions
 import com.skydoves.landscapist.coil.CoilImage
 
-class MainActivity : ComponentActivity() {
+class MainActivity() : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-            ) {
-                items(count = 100) {
-                    TrackListItem(this@MainActivity)
-                }
-            }
+            NavGraph()
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun NavGraph() {
+    val navController = rememberNavController()
+    NavHost(
+        navController = navController,
+        startDestination = "main"
+    ) {
+        composable("main") { TrackList(navController) }
+        composable("track_detail") { Tracks() }
+    }
+}
+
+@Composable
+fun TrackList(navController: NavController) {
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+    ) {
+        items(count = 100) {
+            TrackListItem(navController)
         }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun TrackListItem(context: Context) {
-    val launcher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult(),
-        onResult = { _ ->
-            //
-        }
-    )
+private fun TrackListItem(navController: NavController) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -67,9 +80,7 @@ private fun TrackListItem(context: Context) {
             .padding(5.dp),
         shape = RoundedCornerShape(15.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 5.dp),
-        onClick = {
-            launcher.launch(Intent(context, TrackDetail::class.java))
-        }
+        onClick = { navController.navigate("track_detail") }
     ) {
         Box(
             modifier = Modifier
