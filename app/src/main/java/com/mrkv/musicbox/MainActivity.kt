@@ -35,10 +35,39 @@ import androidx.navigation.compose.rememberNavController
 import com.mrkv.musicbox.trackdetail.Tracks
 import com.skydoves.landscapist.ImageOptions
 import com.skydoves.landscapist.coil.CoilImage
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 
-class MainActivity() : ComponentActivity() {
+class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        val retrofitBuilder = Retrofit.Builder()
+            .baseUrl("https://deezerdevs-deezer.p.rapidapi.com/search?q=eminem")
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(ApiInterface::class.java)
+
+        val retrofitData = retrofitBuilder.getData("eminem")
+
+        retrofitData.enqueue(object : Callback<MyMusicData?> {
+            override fun onResponse(
+                call: Call<MyMusicData?>, response: Response<MyMusicData?>
+            ) {
+                // if the api call is a success then this method is executed
+                val image = response.body()?.data?.
+                val trackTitle = response.body()?.
+                val artistName = response.body()?.
+            }
+
+            override fun onFailure(call: Call<MyMusicData?>, t: Throwable) {
+                // if the api call is a failure then this method is executed
+            }
+        })
+
         setContent {
             NavGraph()
         }
@@ -53,13 +82,16 @@ fun NavGraph() {
         navController = navController,
         startDestination = "main"
     ) {
-        composable("main") { TrackList(navController) }
+        composable("main") {
+            TrackList(navController)
+        }
         composable("track_detail") { Tracks() }
     }
 }
 
 @Composable
 fun TrackList(navController: NavController) {
+
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -72,7 +104,10 @@ fun TrackList(navController: NavController) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun TrackListItem(navController: NavController) {
+private fun TrackListItem(
+    navController: NavController,
+) {
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -92,7 +127,7 @@ private fun TrackListItem(navController: NavController) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 CoilImage(
-                    imageModel = { "https://images.unsplash.com/photo-1701676639172-421b5e0b148b" },
+                    imageModel = {  },
                     imageOptions = ImageOptions(
                         contentScale = ContentScale.Crop,
                         alignment = Alignment.Center
@@ -103,8 +138,12 @@ private fun TrackListItem(navController: NavController) {
                         .clip(CircleShape)
                 )
                 Column {
-                    Text(text = "Track name", fontSize = 24.sp)
-                    Text(text = "Artist name", fontSize = 18.sp)
+
+                    Text(
+                        text = "trackTitle",
+                        fontSize = 24.sp
+                    )
+                    Text(text = "artistName", fontSize = 18.sp)
                 }
             }
         }
