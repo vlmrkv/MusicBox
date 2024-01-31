@@ -1,7 +1,5 @@
 package com.mrkv.musicbox
 
-import retrofit2.Call
-
 data class Data(
     val album: Album,
     val artist: Artist,

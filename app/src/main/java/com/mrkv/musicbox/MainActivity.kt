@@ -1,6 +1,7 @@
 package com.mrkv.musicbox
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -14,6 +15,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
@@ -35,6 +37,9 @@ import androidx.navigation.compose.rememberNavController
 import com.mrkv.musicbox.trackdetail.Tracks
 import com.skydoves.landscapist.ImageOptions
 import com.skydoves.landscapist.coil.CoilImage
+import okhttp3.HttpUrl.Companion.toHttpUrl
+import okhttp3.OkHttpClient
+import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -45,59 +50,77 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+
+        val logging = HttpLoggingInterceptor()
+        logging.setLevel(HttpLoggingInterceptor.Level.BODY)
+
+        val httpClient = OkHttpClient.Builder()
+        httpClient.addInterceptor(logging)
+
         val retrofitBuilder = Retrofit.Builder()
-            .baseUrl("https://deezerdevs-deezer.p.rapidapi.com/search?q=eminem")
+            .baseUrl("https://deezerdevs-deezer.p.rapidapi.com/")
             .addConverterFactory(GsonConverterFactory.create())
+            .client(httpClient.build())
             .build()
             .create(ApiInterface::class.java)
 
         val retrofitData = retrofitBuilder.getData("eminem")
-
-        retrofitData.enqueue(object : Callback<MyMusicData?> {
+        Log.d("debug13", "on create")
+        retrofitData.enqueue(object : Callback<MyData> {
             override fun onResponse(
-                call: Call<MyMusicData?>, response: Response<MyMusicData?>
+                call: Call<MyData?>, response: Response<MyData?>
             ) {
                 // if the api call is a success then this method is executed
-                val image = response.body()?.data?.
-                val trackTitle = response.body()?.
-                val artistName = response.body()?.
+                Log.d("debug13", "on response")
+                val dataList = response.body()?.data
+                if (dataList != null) {
+                    for (i in dataList) {
+                        Log.d("debug13", "dataList = $i")
+                    }
+                }
+                setContent {
+                    NavGraph(dataList)
+                }
+
             }
 
-            override fun onFailure(call: Call<MyMusicData?>, t: Throwable) {
+            override fun onFailure(call: Call<MyData?>, t: Throwable) {
                 // if the api call is a failure then this method is executed
+                Log.d("debug13", "on failure ${t.message}")
             }
         })
-
-        setContent {
-            NavGraph()
-        }
     }
 }
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun NavGraph() {
+fun NavGraph(dataList: List<Data>?) {
     val navController = rememberNavController()
     NavHost(
         navController = navController,
         startDestination = "main"
     ) {
         composable("main") {
-            TrackList(navController)
+            if (dataList != null) {
+                TrackList(navController, dataList)
+            }
         }
         composable("track_detail") { Tracks() }
     }
 }
 
 @Composable
-fun TrackList(navController: NavController) {
-
+fun TrackList(navController: NavController, dataList: List<Data>) {
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
     ) {
-        items(count = 100) {
-            TrackListItem(navController)
+        itemsIndexed(dataList) { _, data ->
+            TrackListItem(
+                navController, cover = data.album.cover,
+                title = data.title,
+                name = data.artist.name
+            )
         }
     }
 }
@@ -105,9 +128,8 @@ fun TrackList(navController: NavController) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TrackListItem(
-    navController: NavController,
+    navController: NavController, cover: String, title: String, name: String
 ) {
-
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -127,7 +149,7 @@ private fun TrackListItem(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 CoilImage(
-                    imageModel = {  },
+                    imageModel = { cover },
                     imageOptions = ImageOptions(
                         contentScale = ContentScale.Crop,
                         alignment = Alignment.Center
@@ -140,10 +162,13 @@ private fun TrackListItem(
                 Column {
 
                     Text(
-                        text = "trackTitle",
+                        text = title,
                         fontSize = 24.sp
                     )
-                    Text(text = "artistName", fontSize = 18.sp)
+                    Text(
+                        text = name,
+                        fontSize = 18.sp
+                    )
                 }
             }
         }
